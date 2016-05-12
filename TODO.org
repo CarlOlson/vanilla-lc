@@ -1,0 +1,9 @@
+* DONE use ASDF and remove quicklisp
+* TODO more comments and documentation
+* TODO add numbers to parser
+* TODO add array format to parser
+* TODO add line number debug information
+* TODO allow sequential evaluation
+* TODO use well defined reduction semantics
+* TODO benchmark futures and worker pools in reduction
+* TODO benchmark a reduction cache

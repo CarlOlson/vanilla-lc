@@ -1,0 +1,96 @@
+* The Game of Life in Lambda Calculus
+[[./glider.gif]]
+** Representing the Grid
+I wanted the array format to be able to express infinite series and be
+safe.  Being able to express infinite series allows for rows of dead
+cells to be expressed compactly.  Along with this is safety: being
+able to get a meaningful result from any index accessed.  My format
+creates safety by making all arrays infinite.
+
+My arrays have the following recursive definition:
+#+BEGIN_SRC fundamental
+  Array : λt.λf.t head Array
+  Array : λt.λf.f default
+#+END_SRC
+Each array accepts a =t= and a =f= function.  The former is called
+when the array has elements, the latter is called when the array is
+empty with a default value.  From this definition Life's grid can be
+made as arrays of arrays.  Cells are represented as zero or one (in
+Church encoding) for dead or alive.
+
+Associated functions for arrays:
+#+BEGIN_SRC fundamental
+  Head  = λa.a (λx.λy.x) (λx.x);
+  Tail  = λa.a (λx.λy.y) (λd.λt.λf.fd);
+  Nth   = λi.λa.Head (i Tail a);
+  Mknil = λd.λt.λf.f d;
+#+END_SRC
+
+This final encoding was chosen for its interpreted efficiency as well,
+but with my current interpreter optimizations it makes little
+difference compared to my older formats.
+
+** Counting Neighbors
+To calculate a neighborhood we need to sum the neighbors in three
+rows.  The following shows this:
+#+BEGIN_SRC fundamental
+  Count111 = λR.Add3 (Head R) (Head (Tail R)) (Head (Tail (Tail R)));
+  Count101 = λR.Add  (Head R) (Head (Tail (Tail R)));
+  CountNeighbors = λR1.λR2.λR3.Add3 (Count111 R1) (Count101 R2) (Count111 R3);
+#+END_SRC
+
+=Count111= counts the first three elements in an array, =Count101=
+counts the first and third.  Using these two functions
+=CountNeighbors= can sum a box around an element from three rows.
+
+** Implementing the Rules
+The Game of Life has simple rules, but it requires comparison of
+numbers.  This is hard with Church encoded numbers, so I created
+another way using my array format:
+#+BEGIN_SRC fundamental
+  Cycle1  = λt.λf.t F (λt.λf.t T (Mknil F));
+  Equals1 = λn.Head (n Tail Cycle1)
+#+END_SRC
+
+=Cycle1= is an array of false, true, then false forever.  =Equals1=
+uses this to check if a number equals one.  This allows for checking
+for equality to multiple numbers simultaneously. This can also allow
+optimizations by returning numbers instead of true or false.
+
+This is how we implement the checks if a cell is alive (=AliveP=), if it
+survives (=SurviveP=), and if it is born (=BornP=).
+
+** Iterating the Grid
+The following is the main code, most of it is uninteresting:
+#+BEGIN_SRC fundamental
+  Next = λR1.λR2.λR3.(λn. (AliveP (Head (Tail R2)))
+                          (SurviveP n)
+                          (BornP n)) (CountNeighbors R1 R2 R3);
+
+  MkRowHelper = Fix λSelf.λR1.λR2.λR3.
+    (Tail R2) (λh.λr.λt.λf.t (Next R1 R2 R3) (Self (Tail R1) (Tail R2) (Tail R3))) Mknil;
+
+  MkRow = λR1.λR2.λR3.λt.λf.t N0 (MkRowHelper R1 R2 R3);
+
+  MkGridHelper = Fix λSelf.λR1.λR2.λG.λGPrev.
+    GPrev (λh.λr.λt.λf.t (MkRow R1 R2 (Head G)) (Self R2 (Head G) (Tail G) G)) (λd.G);
+
+  MkGrid = λG.MkGridHelper (Mknil N0) (Head G) (Tail G) G;
+
+  MkGrid Grid
+#+END_SRC
+
+=MkRow= builds up a row recursively by iterating on three rows.
+=MkGrid= works in a very similar way.  Since edges don't get evaluated
+both functions must append something extra (Church zeros) at the front
+to prevent the grid from shrinking.
+
+They both make use of my array format by doing applications to arrays:
+=Tail R2= or =GPrev=.  The first term applied is evaluated unless the
+array is empty, then the second term is evaluated.  This makes the the
+recursion stop eventually without needing to know the size of the
+grid.
+
+The last thing to do is to evaluate =MkGrid Grid=.  =Grid= is set by
+lisp code inside the file [[file:life.lisp][life.lisp]].  The lisp code is setup to
+evaluate 30 cycles of a glider gun (see the picture at the top).

@@ -1,0 +1,48 @@
+
+Fix = \f.(\x.f \y.xxy)(\x.f \y.xxy);
+
+-- Booleans
+T = \t.\f.t;
+F = \t.\f.f;
+
+-- Numbers
+N0 = (\f.\z.z);
+N1 = (\f.\z.fz);
+
+Add  = \a.\b.\f.\z.a f (b f z);
+Add3 = \a.\b.\c.\f.\z.a f (b f (c f z));
+
+-- Arrays
+Head  = \a.a (\x.\y.x) (\x.x);
+Tail  = \a.a (\x.\y.y) (\d.\t.\f.fd);
+Nth   = \i.\a.Head (i Tail a);
+Mknil = \d.\t.\f.f d;
+
+-- Life
+Count111 = \R.Add3 (Head R) (Head (Tail R)) (Head (Tail (Tail R)));
+Count101 = \R.Add  (Head R) (Head (Tail (Tail R)));
+CountNeighbors = \R1.\R2.\R3.Add3 (Count111 R1) (Count101 R2) (Count111 R3);
+
+SCycle = \t.\f.t N0 (\t.\f.t N0 (\t.\f.t N1 (\t.\f.t N1 (\t.\f.f N0))));
+BCycle = \t.\f.t N0 (\t.\f.t N0 (\t.\f.t N0 (\t.\f.t N1 (\t.\f.f N0))));
+ACycle = \t.\f.t F  (\t.\f.t T  (\t.\f.f F));
+
+SurviveP = \n.Head (n Tail SCycle);
+BornP    = \n.Head (n Tail BCycle);
+AliveP   = \n.Head (n Tail ACycle);
+
+Next = \R1.\R2.\R3.(\n. (AliveP (Head (Tail R2)))
+       			(SurviveP n)
+			(BornP n)) (CountNeighbors R1 R2 R3);
+
+MkRowHelper = Fix \Self.\R1.\R2.\R3.
+  (Tail R2) (\h.\r.\t.\f.t (Next R1 R2 R3) (Self (Tail R1) (Tail R2) (Tail R3))) Mknil;
+
+MkRow = \R1.\R2.\R3.\t.\f.t N0 (MkRowHelper R1 R2 R3);
+
+MkGridHelper = Fix \Self.\R1.\R2.\G.\GPrev.
+  GPrev (\h.\r.\t.\f.t (MkRow R1 R2 (Head G)) (Self R2 (Head G) (Tail G) G)) (\d.G);
+
+MkGrid = \G.MkGridHelper (Mknil N0) (Head G) (Tail G) G;
+
+MkGrid Grid
