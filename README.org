@@ -5,8 +5,8 @@ vanilla).  This was created in order to implement Conway's Game of
 Life, read about it [[file:example/README.org][here]].
 ** A pretty animated gif
 [[./example/glider.gif]]
-** Technical details
-The code is functional, terms can share references in memory, but are
+** Implementation details
+The code is functional. Terms can share references in memory, but are
 reduced separately. To get improved speeds two values are attached to
 each term: dirty and depth.  Dirty is true if there exists the
 possibility of reductions inside the term.  Depth is the value of the

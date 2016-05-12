@@ -26,9 +26,9 @@ Associated functions for arrays:
   Mknil = λd.λt.λf.f d;
 #+END_SRC
 
-This final encoding was chosen for its interpreted efficiency as well,
-but with my current interpreter optimizations it makes little
-difference compared to my older formats.
+This final encoding was chosen partly for its interpreted efficiency,
+but with the current interpreter it makes little difference compared
+to my older formats.
 
 ** Counting Neighbors
 To calculate a neighborhood we need to sum the neighbors in three
@@ -46,18 +46,19 @@ counts the first and third.  Using these two functions
 ** Implementing the Rules
 The Game of Life has simple rules, but it requires comparison of
 numbers.  This is hard with Church encoded numbers, so I created
-another way using my array format:
+another way to compare numbers based on my array format:
 #+BEGIN_SRC fundamental
   Cycle1  = λt.λf.t F (λt.λf.t T (Mknil F));
   Equals1 = λn.Head (n Tail Cycle1)
 #+END_SRC
 
 =Cycle1= is an array of false, true, then false forever.  =Equals1=
-uses this to check if a number equals one.  This allows for checking
-for equality to multiple numbers simultaneously. This can also allow
-optimizations by returning numbers instead of true or false.
+uses this to check if a number equals one.  Using arrays means we can
+check for equality to multiple numbers simultaneously. This can also
+allow small optimizations by returning numbers instead of true or
+false.
 
-This is how we implement the checks if a cell is alive (=AliveP=), if it
+This is how I implement the check if a cell is alive (=AliveP=), if it
 survives (=SurviveP=), and if it is born (=BornP=).
 
 ** Iterating the Grid
@@ -85,11 +86,11 @@ The following is the main code, most of it is uninteresting:
 both functions must append something extra (Church zeros) at the front
 to prevent the grid from shrinking.
 
-They both make use of my array format by doing applications to arrays:
-=Tail R2= or =GPrev=.  The first term applied is evaluated unless the
-array is empty, then the second term is evaluated.  This makes the the
-recursion stop eventually without needing to know the size of the
-grid.
+Both functions make use of my array format by doing applications to an
+array: =Tail R2= or =GPrev=.  The first term applied is evaluated
+unless the array is empty, then the second term is evaluated.  This
+makes the the recursion stop eventually without needing to know the
+size of the grid.
 
 The last thing to do is to evaluate =MkGrid Grid=.  =Grid= is set by
 lisp code inside the file [[file:life.lisp][life.lisp]].  The lisp code is setup to
